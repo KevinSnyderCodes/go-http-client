@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -82,18 +83,27 @@ func (o *Request) Do(options ...*DoOptions) (*http.Response, error) {
 	}
 
 	if o.ResponseBody != nil {
-		encoding := opts.WithResponseEncoding
-		if encoding == "" {
-			o.inferResponseEncoding(resp)
-		}
-
-		switch encoding {
-		case EncodingJSON:
-			if err := json.NewDecoder(resp.Body).Decode(o.ResponseBody); err != nil {
-				return resp, fmt.Errorf("error decoding response body: %w", err)
+		switch v := o.ResponseBody.(type) {
+		case *[]byte:
+			data, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return resp, fmt.Errorf("error reading response body: %w", err)
 			}
+			*v = data
 		default:
-			return resp, fmt.Errorf("unable to decode request body")
+			encoding := opts.WithResponseEncoding
+			if encoding == "" {
+				encoding = o.inferResponseEncoding(resp)
+			}
+
+			switch encoding {
+			case EncodingJSON:
+				if err := json.NewDecoder(resp.Body).Decode(o.ResponseBody); err != nil {
+					return resp, fmt.Errorf("error decoding response body: %w", err)
+				}
+			default:
+				return resp, fmt.Errorf("unable to decode response body")
+			}
 		}
 	}
 

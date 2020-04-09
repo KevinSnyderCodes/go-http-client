@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+
+	"github.com/kevinsnydercodes/go-http-client/internal/ptr"
 )
 
 func TestRequest_Do(t *testing.T) {
@@ -25,15 +27,17 @@ func TestRequest_Do(t *testing.T) {
 		options []*DoOptions
 	}
 	type server struct {
-		wantBody []byte
+		wantRequestBody  []byte
+		withResponseBody []byte
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		server  server
-		want    *http.Response
-		wantErr bool
+		name             string
+		fields           fields
+		args             args
+		server           server
+		want             *http.Response
+		wantResponseBody interface{}
+		wantErr          bool
 	}{
 		{
 			name: "success get",
@@ -70,15 +74,60 @@ func TestRequest_Do(t *testing.T) {
 			},
 		},
 		{
-			name: "success post with body",
+			name: "success post with request body",
 			fields: fields{
 				Method:      http.MethodPost,
 				Path:        "/api/v1/path",
 				RequestBody: []byte("foo"),
 			},
 			server: server{
-				wantBody: []byte("foo"),
+				wantRequestBody: []byte("foo"),
 			},
+		},
+		{
+			name: "success post with request body json",
+			fields: fields{
+				Method: http.MethodPost,
+				Path:   "/api/v1/path",
+				Header: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+				RequestBody: map[string]string{
+					"foo": "bar",
+				},
+			},
+			server: server{
+				wantRequestBody: []byte("{\"foo\":\"bar\"}"),
+			},
+		},
+		{
+			name: "success post with response body",
+			fields: fields{
+				Method:       http.MethodPost,
+				Path:         "/api/v1/path",
+				ResponseBody: &[]byte{},
+			},
+			server: server{
+				withResponseBody: []byte("foo"),
+			},
+			wantResponseBody: ptr.ByteSlice([]byte("foo")),
+		},
+		{
+			name: "success post with response body json",
+			fields: fields{
+				Method: http.MethodPost,
+				Path:   "/api/v1/path",
+				Header: http.Header{
+					"Accept": []string{"application/json"},
+				},
+				ResponseBody: &map[string]string{},
+			},
+			server: server{
+				withResponseBody: []byte("{\"foo\":\"bar\"}"),
+			},
+			wantResponseBody: ptr.MapStringString(map[string]string{
+				"foo": "bar",
+			}),
 		},
 		{
 			name: "error no method",
@@ -97,8 +146,8 @@ func TestRequest_Do(t *testing.T) {
 	}
 	for _, tt := range tests {
 		// Ensure that wanted values have defaults
-		if tt.server.wantBody == nil {
-			tt.server.wantBody = []byte{}
+		if tt.server.wantRequestBody == nil {
+			tt.server.wantRequestBody = []byte{}
 		}
 
 		// Create test server
@@ -125,9 +174,11 @@ func TestRequest_Do(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if !reflect.DeepEqual(body, tt.server.wantBody) {
-					t.Errorf("ioutil.ReadAll(http.Request.Body) = %v, want %v", body, tt.server.wantBody)
+				if !reflect.DeepEqual(body, tt.server.wantRequestBody) {
+					t.Errorf("ioutil.ReadAll(http.Request.Body) = %v, want %v", body, tt.server.wantRequestBody)
 				}
+
+				w.Write(tt.server.withResponseBody)
 			}))
 
 			// Parse URL from test server
@@ -156,6 +207,9 @@ func TestRequest_Do(t *testing.T) {
 			// if !reflect.DeepEqual(got, tt.want) {
 			// 	t.Errorf("Request.Do() = %v, want %v", got, tt.want)
 			// }
+			if !reflect.DeepEqual(tt.fields.ResponseBody, tt.wantResponseBody) {
+				t.Errorf("Request.Do() responseBody = %v, want %v", tt.fields.ResponseBody, tt.wantResponseBody)
+			}
 
 			server.Close()
 		})
