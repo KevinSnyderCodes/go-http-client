@@ -5,6 +5,35 @@ import (
 	"net/url"
 )
 
+// FromURL sets the scheme, host, path, and query of the Request.
+func (o *Request) FromURL(u *url.URL) {
+	if u.Scheme != "" {
+		o.WithScheme(u.Scheme)
+	}
+	if u.Host != "" {
+		o.WithHost(u.Host)
+	}
+	if u.Path != "" {
+		o.WithPath(u.Path)
+	}
+	if len(u.Query()) > 0 {
+		o.WithQuery(u.Query())
+	}
+}
+
+// FromURLString sets the scheme, host, path, and query of the Request.
+func (o *Request) FromURLString(ref string) error {
+	u := &url.URL{}
+	u, err := u.Parse(ref)
+	if err != nil {
+		return fmt.Errorf("error parsing URL: %w", err)
+	}
+
+	o.FromURL(u)
+
+	return nil
+}
+
 // URL builds a URL object from the Request.
 func (o *Request) URL() (*url.URL, error) {
 	if o.Scheme == "" {

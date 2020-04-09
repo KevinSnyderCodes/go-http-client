@@ -7,6 +7,84 @@ import (
 	"testing"
 )
 
+func TestRequest_FromURL(t *testing.T) {
+	type args struct {
+		u *url.URL
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantRequest *Request
+	}{
+		{
+			name: "success",
+			args: args{
+				u: &url.URL{
+					Scheme:   "http",
+					Host:     "www.test.com",
+					Path:     "/api/v1/path",
+					RawQuery: "foo=bar",
+				},
+			},
+			wantRequest: &Request{
+				Scheme: "http",
+				Host:   "www.test.com",
+				Path:   "/api/v1/path",
+				Query: url.Values{
+					"foo": []string{"bar"},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := &Request{}
+			o.FromURL(tt.args.u)
+			if !reflect.DeepEqual(o, tt.wantRequest) {
+				t.Errorf("Request = %v, want %v", o, tt.wantRequest)
+			}
+		})
+	}
+}
+
+func TestRequest_FromURLString(t *testing.T) {
+	type args struct {
+		ref string
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantErr     bool
+		wantRequest *Request
+	}{
+		{
+			name: "success",
+			args: args{
+				ref: "http://www.test.com/api/v1/path?foo=bar",
+			},
+			wantRequest: &Request{
+				Scheme: "http",
+				Host:   "www.test.com",
+				Path:   "/api/v1/path",
+				Query: url.Values{
+					"foo": []string{"bar"},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := &Request{}
+			if err := o.FromURLString(tt.args.ref); (err != nil) != tt.wantErr {
+				t.Errorf("Request.FromURLString() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(o, tt.wantRequest) {
+				t.Errorf("Request = %v, want %v", o, tt.wantRequest)
+			}
+		})
+	}
+}
+
 func TestRequest_URL(t *testing.T) {
 	type fields struct {
 		Client       *http.Client
