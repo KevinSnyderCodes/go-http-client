@@ -6,7 +6,7 @@ import (
 )
 
 // FromURL sets the scheme, host, path, and query of the Request.
-func (o *Request) FromURL(u *url.URL) {
+func (o *Request) FromURL(u *url.URL) *Request {
 	if u.Scheme != "" {
 		o.WithScheme(u.Scheme)
 	}
@@ -19,19 +19,19 @@ func (o *Request) FromURL(u *url.URL) {
 	if len(u.Query()) > 0 {
 		o.WithQuery(u.Query())
 	}
+
+	return o
 }
 
 // FromURLString sets the scheme, host, path, and query of the Request.
-func (o *Request) FromURLString(ref string) error {
+func (o *Request) FromURLString(ref string) (*Request, error) {
 	u := &url.URL{}
 	u, err := u.Parse(ref)
 	if err != nil {
-		return fmt.Errorf("error parsing URL: %w", err)
+		return nil, fmt.Errorf("error parsing URL: %w", err)
 	}
 
-	o.FromURL(u)
-
-	return nil
+	return o.FromURL(u), nil
 }
 
 // URL builds a URL object from the Request.
