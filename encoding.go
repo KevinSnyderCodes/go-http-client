@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -23,7 +22,6 @@ func inferEncoding(contentType string) Encoding {
 
 func (o *Request) inferRequestEncoding() Encoding {
 	contentType := o.Header.Get("Content-Type")
-	fmt.Println(contentType)
 
 	return inferEncoding(contentType)
 }
