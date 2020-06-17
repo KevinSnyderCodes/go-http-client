@@ -20,6 +20,11 @@ type Request struct {
 	ResponseBody interface{}
 }
 
+// Clear sets all fields of the Request to their zero value.
+func (o *Request) Clear() {
+	*o = Request{}
+}
+
 // WithClient sets the HTTP client of the Request.
 func (o *Request) WithClient(client *http.Client) *Request {
 	o.Client = client
