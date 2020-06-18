@@ -13,6 +13,63 @@ type mockBody struct {
 	Age  int    `json:"age"`
 }
 
+func TestRequest_Clear(t *testing.T) {
+	type fields struct {
+		Client       *http.Client
+		Method       string
+		Scheme       string
+		Host         string
+		Path         string
+		Query        url.Values
+		Header       http.Header
+		RequestBody  interface{}
+		ResponseBody interface{}
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   *Request
+	}{
+		{
+			name: "success",
+			fields: fields{
+				Client: http.DefaultClient,
+				Method: http.MethodGet,
+				Scheme: "http",
+				Host:   "www.example.com",
+				Path:   "/api/v1/path",
+				Query: url.Values{
+					"foo": []string{"bar"},
+				},
+				Header: http.Header{
+					"Foo": []string{"bar"},
+				},
+				RequestBody:  []byte("foo"),
+				ResponseBody: &[]byte{},
+			},
+			want: &Request{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := &Request{
+				Client:       tt.fields.Client,
+				Method:       tt.fields.Method,
+				Scheme:       tt.fields.Scheme,
+				Host:         tt.fields.Host,
+				Path:         tt.fields.Path,
+				Query:        tt.fields.Query,
+				Header:       tt.fields.Header,
+				RequestBody:  tt.fields.RequestBody,
+				ResponseBody: tt.fields.ResponseBody,
+			}
+			if got := o.Clear(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Request.Clear() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRequest_WithClient(t *testing.T) {
 	type fields struct {
 		Client       *http.Client
